@@ -1,0 +1,12 @@
+h1, .subheading{
+    color: rgba(240, 248, 255, 0.774) !important;
+}
+.nav-item{
+    font-style: italic !important;
+}
+.nav-item:hover{
+    font-style: normal !important;
+}
+body{
+    background-color: rgba(226, 219, 199, 0.479) !important;
+}

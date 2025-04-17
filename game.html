@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BYU Basketball Jeopardy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Basic body styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #002244; /* BYU Navy */
+            color: #FFFFFF; /* White text */
+            padding-bottom: 50px; /* Add padding to bottom */
+        }
+
+        /* Team Setup Area */
+        .team-setup {
+            background-color: #003366;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px auto;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .team-setup label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #FFC72C; /* Gold */
+        }
+        .team-setup input {
+            width: 80%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            color: #333; /* Dark text for input */
+        }
+        .start-button {
+             background-color: #FFC72C; /* Gold */
+             color: #002244; /* Navy */
+             padding: 10px 25px;
+             border: none;
+             border-radius: 6px;
+             cursor: pointer;
+             font-size: 1.1rem;
+             font-weight: bold;
+             transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+         .start-button:hover {
+             background-color: #e6b325; /* Darker Gold */
+             transform: scale(1.05);
+         }
+
+        /* Score and Turn Display */
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background-color: #001f3f;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 15px auto;
+            max-width: 700px;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        .team-score {
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+            border: 2px solid transparent; /* Placeholder for active border */
+        }
+        .team-score.active {
+            background-color: #FFC72C; /* Gold background for active team */
+            color: #002244; /* Navy text */
+            transform: scale(1.1); /* Slightly larger */
+            border-color: #FFFFFF; /* White border */
+        }
+        .team-score span { /* Score value */
+             display: block; /* Put score on new line */
+             font-size: 1.6rem; /* Larger score */
+             margin-top: 3px;
+        }
+
+
+        /* Custom styles for the Jeopardy board */
+        .jeopardy-board {
+            display: grid;
+            /* 4 columns for categories */
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px; /* Spacing between cells */
+            background-color: #001f3f; /* Darker Navy for board background */
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            max-width: 900px; /* Limit board width for better layout */
+            margin: 20px auto; /* Center the board */
+        }
+
+        /* Styling for category headers */
+        .category-header {
+            background-color: #FFFFFF; /* White background */
+            color: #002244; /* BYU Navy text */
+            font-weight: bold;
+            text-align: center;
+            padding: 12px 5px; /* Padding */
+            border-radius: 6px;
+            font-size: 0.9rem; /* Slightly smaller font */
+            line-height: 1.2; /* Adjust line height for wrapping */
+            min-height: 60px; /* Ensure consistent height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Styling for question value cells */
+        .question-cell {
+            background-color: #003366; /* Lighter Navy */
+            color: #FFC72C; /* Gold color for points */
+            font-weight: bold;
+            font-size: 1.8rem; /* Larger font for points */
+            text-align: center;
+            padding: 20px 5px; /* Padding */
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            min-height: 80px; /* Ensure consistent height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative; /* Needed for potential future overlays */
+        }
+        .question-cell:hover {
+            background-color: #004488; /* Slightly lighter blue on hover */
+            transform: scale(1.03); /* Slight zoom effect on hover */
+        }
+
+        /* Styling for cells that have been answered */
+        .question-cell.answered {
+            background-color: #4a5568; /* Gray out answered questions */
+            color: #a0aec0; /* Lighter gray text */
+            cursor: not-allowed; /* Indicate non-clickable */
+            pointer-events: none; /* Disable further clicks */
+            transform: none; /* Disable hover transform */
+        }
+         .question-cell.answered:hover {
+             background-color: #4a5568; /* Keep gray on hover */
+         }
+        .question-cell.answered::after {
+             content: ''; /* Clear the points visually */
+        }
+
+        /* Modal styles (hidden by default) */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 100; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.7); /* Black w/ opacity */
+            /* Flexbox to center modal content */
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Modal content box */
+        .modal-content {
+            background-color: #002244; /* BYU Navy */
+            color: #FFFFFF;
+            margin: auto;
+            padding: 30px;
+            border: 1px solid #888;
+            width: 90%; /* Responsive width */
+            max-width: 600px; /* Max width */
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            position: relative; /* For positioning the close button */
+        }
+
+        /* Question text inside modal */
+        .modal-question {
+            font-size: 1.4rem;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        /* Answer option buttons */
+        .answer-option {
+            background-color: #003366; /* Lighter Navy */
+            color: #FFFFFF;
+            border: 1px solid #004488;
+            padding: 12px 15px;
+            margin: 8px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            font-size: 1.1rem;
+            text-align: left; /* Align text left for readability */
+            display: block; /* Make buttons take full width */
+            width: 100%; /* Full width */
+        }
+        .answer-option:hover:not(:disabled) { /* Only hover effect if not disabled */
+            background-color: #004488; /* Highlight on hover */
+            border-color: #FFC72C; /* Gold border on hover */
+        }
+        .answer-option:disabled {
+             opacity: 0.6; /* Dim disabled buttons */
+             cursor: not-allowed;
+        }
+
+
+        /* Feedback message (Correct/Incorrect) */
+        .feedback {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-height: 50px; /* Reserve space to prevent layout shifts */
+            display: flex; /* Use flexbox for alignment */
+            align-items: center; /* Vertically center */
+            justify-content: center; /* Horizontally center */
+            text-align: center; /* Center text */
+        }
+        .correct {
+            color: #48bb78; /* Green for correct */
+        }
+        .incorrect {
+            color: #f56565; /* Red for incorrect */
+        }
+
+        /* Reset Button Area */
+        .reset-container {
+             text-align: center;
+             margin-top: 25px;
+        }
+        .reset-button {
+            background-color: #C8102E; /* A contrasting red */
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+        .reset-button:hover {
+            background-color: #A80D23; /* Darker red on hover */
+        }
+
+        /* Close button for modal */
+        .close-button {
+            background-color: #718096; /* Gray */
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s ease;
+            position: absolute; /* Position relative to modal-content */
+            top: 10px;
+            right: 15px;
+        }
+        .close-button:hover {
+            background-color: #4a5568; /* Darker gray on hover */
+        }
+
+        /* Hide elements initially */
+        .hidden {
+            display: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .category-header {
+                font-size: 0.8rem; /* Smaller font on smaller screens */
+                padding: 10px 3px;
+                min-height: 50px;
+            }
+            .question-cell {
+                font-size: 1.5rem; /* Smaller points */
+                padding: 15px 3px;
+                min-height: 70px;
+            }
+            .jeopardy-board {
+                gap: 5px; /* Reduce gap */
+                padding: 5px;
+            }
+            .modal-content {
+                padding: 20px;
+                padding-top: 45px; /* Add padding top to avoid overlap with close button */
+            }
+            .modal-question {
+                font-size: 1.2rem;
+            }
+            .answer-option {
+                font-size: 1rem;
+                padding: 10px 12px;
+            }
+            .game-info {
+                font-size: 1.1rem;
+                flex-direction: column; /* Stack scores vertically */
+                gap: 10px; /* Add gap between stacked items */
+            }
+             .team-score span {
+                 font-size: 1.4rem;
+             }
+        }
+         @media (max-width: 480px) {
+             .category-header {
+                font-size: 0.7rem; /* Even smaller */
+                 min-height: 45px;
+             }
+             .question-cell {
+                 font-size: 1.2rem; /* Smaller points */
+                 min-height: 60px;
+             }
+             .modal-question {
+                font-size: 1.1rem;
+             }
+             .answer-option {
+                font-size: 0.9rem;
+             }
+             .close-button {
+                 padding: 6px 10px;
+                 font-size: 0.8rem;
+             }
+             .team-setup input {
+                 width: 95%;
+             }
+             .game-info {
+                 font-size: 1rem;
+             }
+             .team-score span {
+                 font-size: 1.3rem;
+             }
+         }
+
+    </style>
+</head>
+<body>
+
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center mb-4 text-white">BYU Basketball Jeopardy</h1>
+
+        <div id="team-setup" class="team-setup">
+            <h2 class="text-xl font-bold mb-4">Enter Team Names</h2>
+            <div>
+                <label for="team1-name">Team 1 Name:</label>
+                <input type="text" id="team1-name" value="Cougars">
+            </div>
+            <div>
+                <label for="team2-name">Team 2 Name:</label>
+                <input type="text" id="team2-name" value="Cosmos">
+            </div>
+            <button id="start-game-button" class="start-button">Start Game</button>
+        </div>
+
+        <div id="game-area" class="hidden">
+            <div id="game-info" class="game-info">
+                <div id="team1-score-display" class="team-score">
+                    <span id="team1-name-display">Team 1</span>: $<span id="team1-score">0</span>
+                </div>
+                 <div id="turn-indicator" class="text-lg font-semibold mx-4"></div> <div id="team2-score-display" class="team-score">
+                    <span id="team2-name-display">Team 2</span>: $<span id="team2-score">0</span>
+                </div>
+            </div>
+
+            <div id="jeopardy-board" class="jeopardy-board">
+                </div>
+
+             <div class="reset-container">
+                <button id="reset-button" class="reset-button">Reset Game</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="question-modal" class="modal">
+        <div class="modal-content">
+             <button id="close-modal-button" class="close-button">X</button>
+             <div id="modal-question-text" class="modal-question">Question text goes here...</div>
+             <div id="modal-answers">
+                </div>
+            <div id="feedback-message" class="feedback"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Full Question Bank ---
+        // Stores all possible questions for each category and point value.
+        const allGameData = {
+            "Coaches": {
+                100: [
+                    { question: "Who was hired as the BYU Men's Basketball head coach before the 2024-25 season?", options: ["Kevin Young", "Mark Pope", "Dave Rose", "Quincy Lewis"], answer: "Kevin Young" },
+                    { question: "What is the first name of the current BYU Men's Basketball head coach (as of 2024-25)?", options: ["Kevin", "Mark", "Dave", "Stan"], answer: "Kevin" }
+                ],
+                200: [
+                    { question: "This legendary coach led BYU to NIT championships in 1951 and 1966.", options: ["Stan Watts", "Roger Reid", "Frank Arnold", "Steve Cleveland"], answer: "Stan Watts" },
+                    { question: "Which coach has the most wins in BYU Men's Basketball history?", options: ["Stan Watts", "Dave Rose", "Roger Reid", "Mark Pope"], answer: "Stan Watts" }
+                ],
+                300: [
+                    { question: "Which coach led BYU during the 'Jimmermania' era and multiple NCAA tournament appearances?", options: ["Dave Rose", "Mark Pope", "Steve Cleveland", "Roger Reid"], answer: "Dave Rose" },
+                    { question: "Under Dave Rose, BYU reached the Sweet Sixteen of the NCAA Tournament in which year?", options: ["2011", "2010", "2012", "2014"], answer: "2011" }
+                ],
+                400: [
+                    { question: "Mark Pope, BYU's coach from 2019-2024, left to become the head coach at which university?", options: ["Kentucky", "Louisville", "Utah", "Arizona"], answer: "Kentucky" },
+                    { question: "Before coaching at BYU, Mark Pope was the head coach at which Utah university?", options: ["Utah Valley University (UVU)", "Weber State", "Utah State", "Southern Utah University (SUU)"], answer: "Utah Valley University (UVU)" }
+                ],
+                500: [
+                    { question: "Before becoming BYU's head coach, Kevin Young served as an associate head coach for which NBA team?", options: ["Phoenix Suns", "Utah Jazz", "Denver Nuggets", "LA Lakers"], answer: "Phoenix Suns" },
+                    { question: "Kevin Young was reportedly the highest-paid assistant coach in the NBA before taking the BYU job. Which team did he work for?", options: ["Phoenix Suns", "Philadelphia 76ers", "Boston Celtics", "Golden State Warriors"], answer: "Phoenix Suns" }
+                ]
+            },
+            "Famous Alumni": {
+                100: [
+                    { question: "This guard captured national attention ('Jimmermania') and won the Naismith Player of the Year award in 2011.", options: ["Jimmer Fredette", "Danny Ainge", "Kyle Collinsworth", "Tyler Haws"], answer: "Jimmer Fredette" },
+                    { question: "Which BYU player was known for his incredible scoring ability and the term 'Jimmermania'?", options: ["Jimmer Fredette", "Shawn Bradley", "Tyler Haws", "Elijah Bryant"], answer: "Jimmer Fredette" }
+                ],
+                200: [
+                    { question: "Known as 'The Stormin' Mormon', this multi-sport athlete starred at BYU before a long NBA career and becoming an NBA executive.", options: ["Danny Ainge", "Shawn Bradley", "Devin Durrant", "Mel Hutchins"], answer: "Danny Ainge" },
+                    { question: "Which BYU alum won an NBA championship as a player with the Boston Celtics?", options: ["Danny Ainge", "Greg Kite", "Fred Roberts", "Shawn Bradley"], answer: "Danny Ainge" } // Greg Kite also won, but Ainge is more famous
+                ],
+                300: [
+                    { question: "This 7'6\" center played one season at BYU before being the #2 overall pick in the 1993 NBA Draft.", options: ["Shawn Bradley", "Kresimir Cosic", "Rafael Araujo", "Trent Plaisted"], answer: "Shawn Bradley" },
+                    { question: "Which towering BYU center famously blocked Shaquille O'Neal multiple times in his rookie NBA season?", options: ["Shawn Bradley", "Greg Ostertag", "Eric Mika", "Isaac Neilson"], answer: "Shawn Bradley" }
+                ],
+                400: [
+                    { question: "This Croatian sensation was a 3-time All-American at BYU in the early 1970s and is a member of the Naismith Basketball Hall of Fame.", options: ["Kresimir Cosic", "Mel Hutchins", "Garnet Bailey", "Fred Roberts"], answer: "Kresimir Cosic" },
+                    { question: "Kresimir Cosic represented which country in multiple Olympic Games?", options: ["Yugoslavia", "Croatia", "USA", "Serbia"], answer: "Yugoslavia" } // Represented Yugoslavia before Croatia's independence
+                ],
+                500: [
+                    { question: "Who holds the NCAA record for the most triple-doubles in a single season (6) and career (12), achieved while at BYU?", options: ["Kyle Collinsworth", "Jimmer Fredette", "Elijah Bryant", "Brandon Davies"], answer: "Kyle Collinsworth" },
+                    { question: "Besides scoring, rebounds, and assists, what other category did Kyle Collinsworth occasionally record double digits in for his triple-doubles?", options: ["Steals", "Blocks", "Turnovers", "Free Throws Made"], answer: "Steals" } // While rare, his high steal counts sometimes neared double digits.
+                ]
+            },
+            "2024-25 Players": {
+                100: [
+                    { question: "Which point guard was a key returning starter expected to lead the Cougars for the 2024-25 season?", options: ["Dallin Hall", "Jaxson Robinson", "Trevin Knell", "Richie Saunders"], answer: "Dallin Hall" },
+                    { question: "This returning guard was known for his playmaking and ball-handling skills in the 2024-25 season.", options: ["Dallin Hall", "Trey Stewart", "Dawson Baker", "Richie Saunders"], answer: "Dallin Hall" }
+                ],
+                200: [
+                    { question: "BYU added this highly-touted international guard prospect from the NBA Academy Global for the 2024-25 season.", options: ["Egor Demin", "Kanon Catchings", "Fousseyni Traore", "Dawson Baker"], answer: "Egor Demin" },
+                    { question: "Egor Demin, a major recruit for the 2024-25 season, originally hails from which country?", options: ["Russia", "Lithuania", "Serbia", "France"], answer: "Russia" }
+                ],
+                300: [
+                    { question: "This athletic wing, known for his energy and defense, returned for BYU in 2024-25.", options: ["Richie Saunders", "Spencer Johnson", "Gideon George", "Caleb Lohner"], answer: "Richie Saunders" },
+                    { question: "Which returning player was often praised for his hustle plays and rebounding from the wing position in 2024-25?", options: ["Richie Saunders", "Trevin Knell", "Noah Waterman", "Dallin Hall"], answer: "Richie Saunders" }
+                ],
+                400: [
+                    { question: "Which transfer forward, previously committed to Purdue, surprisingly signed with BYU for the 2024-25 season?", options: ["Kanon Catchings", "Aly Khalifa", "Noah Waterman", "Trey Stewart"], answer: "Kanon Catchings" },
+                    { question: "Kanon Catchings, a significant addition for 2024-25, is the son of which former WNBA star?", options: ["Tamika Catchings", "Lisa Leslie", "Sheryl Swoopes", "Sue Bird"], answer: "Tamika Catchings" }
+                ],
+                500: [
+                    { question: "This returning center was a crucial piece in the post for the Cougars during the 2024-25 campaign.", options: ["Fousseyni Traore", "Atiki Ally Atiki", "Noah Waterman", "Jaxson Robinson"], answer: "Fousseyni Traore" },
+                    { question: "Fousseyni Traore ('Fous') is originally from which West African country?", options: ["Mali", "Senegal", "Ghana", "Nigeria"], answer: "Mali" }
+                ]
+            },
+            "2024-25 Season": {
+                100: [
+                    { question: "In which conference did BYU Men's Basketball compete during the 2024-25 season?", options: ["Big 12", "WCC", "Pac-12", "Mountain West"], answer: "Big 12" },
+                    { question: "This was BYU's second season competing in which Power 5 conference?", options: ["Big 12", "SEC", "ACC", "Big Ten"], answer: "Big 12" }
+                ],
+                200: [
+                    // Replaced True/False
+                    { question: "Who was BYU's first opponent in the Big 12 Conference tournament during the 2024-25 season?", options: ["UCF", "Kansas State", "Oklahoma State", "West Virginia"], answer: "UCF" }, // Example: Need actual result if known, otherwise plausible matchup
+                    { question: "Which team did BYU defeat in their Big 12 home opener for the 2024-25 season?", options: ["Cincinnati", "Houston", "Iowa State", "Texas Tech"], answer: "Cincinnati" } // Example: Plausible home opener win
+                ],
+                300: [
+                    { question: "BYU plays its home games in which iconic arena?", options: ["Marriott Center", "Smith Fieldhouse", "LaVell Edwards Stadium", "Delta Center"], answer: "Marriott Center" },
+                    { question: "The Marriott Center, BYU's home court, is known for having one of the largest seating capacities among college basketball arenas. Approximately how many fans can it hold?", options: ["19,000", "15,000", "22,000", "12,000"], answer: "19,000" } // Around 18,987
+                ],
+                400: [
+                    { question: "Which traditional rival did BYU face in a highly anticipated non-conference game during the 2024-25 season?", options: ["Utah", "Gonzaga", "Saint Mary's", "San Diego State"], answer: "Utah" },
+                    { question: "Where was the annual BYU vs. Utah rivalry game played during the 2024-25 season?", options: ["Salt Lake City (Huntsman Center)", "Provo (Marriott Center)", "Las Vegas", "Neutral Site (Delta Center)"], answer: "Salt Lake City (Huntsman Center)" } // Typically alternates home sites
+                ],
+                500: [
+                    // Replaced True/False
+                    { question: "What was BYU's approximate final ranking in the Big 12 regular season standings for 2024-25?", options: ["Mid-pack (6th-10th)", "Top 5", "Bottom 4", "1st Place"], answer: "Mid-pack (6th-10th)" }, // Plausible outcome given Big 12 strength
+                    { question: "Did BYU secure a bid to the NCAA Men's Basketball Tournament following the 2024-25 season?", options: ["Yes", "No", "NIT Bid Instead", "CBI Bid Instead"], answer: "Yes" } // Plausible outcome for a solid Big 12 team
+                ]
+            }
+        };
+
+        // --- DOM Elements ---
+        const teamSetupDiv = document.getElementById('team-setup');
+        const gameAreaDiv = document.getElementById('game-area');
+        const startGameButton = document.getElementById('start-game-button');
+        const team1NameInput = document.getElementById('team1-name');
+        const team2NameInput = document.getElementById('team2-name');
+        const team1NameDisplay = document.getElementById('team1-name-display');
+        const team2NameDisplay = document.getElementById('team2-name-display');
+        const team1ScoreDisplay = document.getElementById('team1-score');
+        const team2ScoreDisplay = document.getElementById('team2-score');
+        const team1ScoreContainer = document.getElementById('team1-score-display');
+        const team2ScoreContainer = document.getElementById('team2-score-display');
+        const turnIndicator = document.getElementById('turn-indicator');
+
+        const board = document.getElementById('jeopardy-board');
+        const modal = document.getElementById('question-modal');
+        const modalQuestionText = document.getElementById('modal-question-text');
+        const modalAnswers = document.getElementById('modal-answers');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const resetButton = document.getElementById('reset-button');
+
+        // --- Game State ---
+        let team1Name = "Team 1";
+        let team2Name = "Team 2";
+        let team1Score = 0;
+        let team2Score = 0;
+        let currentTurn = 1; // 1 or 2
+        let currentGameData = []; // Holds the specific questions selected for this game instance
+        let currentQuestionData = null; // Holds data of the question currently in the modal
+        let answeredQuestions = new Set(); // Keeps track of answered questions using unique IDs
+        let modalCloseTimeoutId = null; // To manage the auto-close timeout
+
+        // --- Functions ---
+
+        /**
+         * Selects random questions from the bank for the current game.
+         */
+        function selectGameQuestions() {
+            currentGameData = []; // Reset current game questions
+            const categories = Object.keys(allGameData);
+
+            categories.forEach(categoryName => {
+                const categoryQuestions = [];
+                const pointLevels = Object.keys(allGameData[categoryName]);
+
+                pointLevels.forEach(points => {
+                    const availableQuestions = allGameData[categoryName][points];
+                    if (availableQuestions && availableQuestions.length > 0) {
+                        // Select a random question from the available ones for this point level
+                        const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+                        const selectedQuestion = { ...availableQuestions[randomIndex] }; // Copy question data
+                        selectedQuestion.points = parseInt(points); // Ensure points are numbers
+                        categoryQuestions.push(selectedQuestion);
+                    }
+                });
+
+                // Add the category and its selected questions to the current game data
+                 if (categoryQuestions.length > 0) {
+                    currentGameData.push({
+                        category: categoryName,
+                        questions: categoryQuestions.sort((a, b) => a.points - b.points) // Ensure questions are sorted by points
+                    });
+                 }
+            });
+        }
+
+
+        /**
+         * Initializes or Resets the Game Board and State.
+         * Called AFTER team names are set.
+         */
+        function initGame() {
+            // Hide setup, show game area
+            teamSetupDiv.classList.add('hidden');
+            gameAreaDiv.classList.remove('hidden');
+
+            // Get team names, provide defaults if empty
+            team1Name = team1NameInput.value.trim() || "Team 1";
+            team2Name = team2NameInput.value.trim() || "Team 2";
+            team1NameDisplay.textContent = team1Name;
+            team2NameDisplay.textContent = team2Name;
+
+            // Reset scores and turn
+            team1Score = 0;
+            team2Score = 0;
+            currentTurn = 1; // Team 1 starts
+            updateScoreDisplay(); // Update visuals for score and turn
+
+            // Select questions for this game instance
+            selectGameQuestions();
+
+            // Clear board and answered set
+            board.innerHTML = '';
+            answeredQuestions.clear();
+            feedbackMessage.textContent = '';
+            feedbackMessage.className = 'feedback';
+
+            // Create Category Headers
+            currentGameData.forEach(cat => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.classList.add('category-header');
+                categoryDiv.textContent = cat.category;
+                board.appendChild(categoryDiv);
+            });
+
+            // Create Question Cells
+            const pointsLevels = [100, 200, 300, 400, 500];
+            pointsLevels.forEach(points => {
+                currentGameData.forEach((cat, catIndex) => {
+                    // Find the question matching the current points level for this category
+                    const question = cat.questions.find(q => q.points === points);
+                    if (question) {
+                        const cell = document.createElement('div');
+                        const questionId = `${catIndex}-${points}`; // Unique ID
+                        cell.classList.add('question-cell');
+                        cell.dataset.categoryId = catIndex;
+                        cell.dataset.points = points;
+                        cell.dataset.questionId = questionId;
+                        cell.textContent = `$${points}`;
+                        cell.addEventListener('click', handleCellClick);
+                        board.appendChild(cell);
+                    } else {
+                        // Add placeholder if a question is missing (shouldn't happen with current setup)
+                        board.appendChild(document.createElement('div'));
+                    }
+                });
+            });
+        }
+
+        /**
+         * Handles the Click Event on a Question Cell.
+         */
+        function handleCellClick(event) {
+            const cell = event.target;
+            const categoryId = parseInt(cell.dataset.categoryId);
+            const points = parseInt(cell.dataset.points);
+            const questionId = cell.dataset.questionId;
+
+            if (answeredQuestions.has(questionId)) {
+                return;
+            }
+
+            // Find the question using the current game data
+            currentQuestionData = currentGameData[categoryId]?.questions.find(q => q.points === points);
+
+            if (currentQuestionData) {
+                displayQuestion(currentQuestionData, cell);
+            } else {
+                 console.error("Could not find question data for:", categoryId, points);
+            }
+        }
+
+        /**
+         * Displays the Question Modal.
+         */
+        function displayQuestion(questionData, cell) {
+             // Clear any existing auto-close timeout
+             clearTimeout(modalCloseTimeoutId);
+             modalCloseTimeoutId = null;
+
+            modalQuestionText.textContent = questionData.question;
+            modalAnswers.innerHTML = '';
+            feedbackMessage.textContent = '';
+            feedbackMessage.className = 'feedback';
+
+            // Shuffle options
+            const shuffledOptions = [...questionData.options];
+             for (let i = shuffledOptions.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+            }
+
+            // Create answer buttons
+            shuffledOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.classList.add('answer-option');
+                button.textContent = option;
+                button.addEventListener('click', () => handleAnswerClick(option, questionData, cell));
+                modalAnswers.appendChild(button);
+            });
+
+            modal.style.display = 'flex';
+        }
+
+        /**
+         * Handles the Click Event on an Answer Option Button.
+         */
+        function handleAnswerClick(selectedOption, questionData, cell) {
+            const correct = selectedOption === questionData.answer;
+            const questionId = cell.dataset.questionId;
+            const points = questionData.points;
+
+            // Disable buttons
+            const answerButtons = modalAnswers.querySelectorAll('.answer-option');
+            answerButtons.forEach(button => button.disabled = true);
+
+            // Update score and display feedback
+            if (correct) {
+                feedbackMessage.textContent = `Correct! +$${points}`;
+                feedbackMessage.classList.add('correct');
+                if (currentTurn === 1) {
+                    team1Score += points;
+                } else {
+                    team2Score += points;
+                }
+            } else {
+                feedbackMessage.textContent = `Incorrect. The answer was: ${questionData.answer}`;
+                feedbackMessage.classList.add('incorrect');
+                 // Deduct points only if the current team answered incorrectly
+                 if (currentTurn === 1) {
+                     team1Score -= points;
+                 } else {
+                     team2Score -= points;
+                 }
+            }
+
+            markQuestionAsAnswered(cell, questionId); // Mark question visually
+            updateScoreDisplay(); // Update score visuals
+
+            // Switch turn AFTER processing the answer
+            currentTurn = currentTurn === 1 ? 2 : 1;
+            updateTurnIndicator(); // Update visual indicator for the *next* turn
+
+            // Auto-close modal after 5 seconds
+            modalCloseTimeoutId = setTimeout(closeModal, 5000);
+        }
+
+        /**
+         * Marks a question cell as answered visually.
+         */
+        function markQuestionAsAnswered(cell, questionId) {
+             if (cell) {
+                 cell.classList.add('answered');
+                 cell.textContent = '';
+                 answeredQuestions.add(questionId);
+             }
+        }
+
+        /**
+         * Updates the Score Display for both teams.
+         */
+        function updateScoreDisplay() {
+            team1ScoreDisplay.textContent = team1Score;
+            team2ScoreDisplay.textContent = team2Score;
+
+            // Update active team highlight
+             updateTurnIndicator(); // Also handles highlighting the score boxes
+        }
+
+        /**
+         * Updates the visual indicator for whose turn it is.
+         */
+         function updateTurnIndicator() {
+             const activeTeamName = currentTurn === 1 ? team1Name : team2Name;
+             turnIndicator.textContent = `${activeTeamName}'s Turn`;
+
+             // Highlight the active team's score box
+             if (currentTurn === 1) {
+                 team1ScoreContainer.classList.add('active');
+                 team2ScoreContainer.classList.remove('active');
+             } else {
+                 team1ScoreContainer.classList.remove('active');
+                 team2ScoreContainer.classList.add('active');
+             }
+         }
+
+
+        /**
+         * Closes the Question Modal.
+         */
+        function closeModal() {
+             // Clear the timeout if the modal is closed manually or automatically
+             if (modalCloseTimeoutId) {
+                 clearTimeout(modalCloseTimeoutId);
+                 modalCloseTimeoutId = null;
+             }
+            modal.style.display = 'none';
+            currentQuestionData = null;
+        }
+
+        /**
+         * Resets the game to the team setup screen.
+         */
+         function resetToSetup() {
+             closeModal(); // Ensure modal is closed
+             gameAreaDiv.classList.add('hidden'); // Hide game board/scores
+             teamSetupDiv.classList.remove('hidden'); // Show team setup
+             // Optionally clear input fields if desired
+             // team1NameInput.value = 'Cougars';
+             // team2NameInput.value = 'Cosmos';
+         }
+
+        // --- Event Listeners ---
+        startGameButton.addEventListener('click', initGame); // Start game from setup
+        closeModalButton.addEventListener('click', closeModal); // Manual close modal
+        resetButton.addEventListener('click', resetToSetup); // Reset to team setup screen
+
+        // Close modal if clicking outside the content
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // --- Initial Setup ---
+        // Game starts hidden, setup is shown. initGame() is called by the start button.
+
+    </script>
+<div style="text-align: center;">
+    <a href="scratch.html">Back to Previous Page</a>
+</div>
+</body>
+</html>
